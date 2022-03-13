@@ -1,1 +1,3 @@
-{{- partial "helpers/wrapped-image" (dict "alt" .Text "altRendered" true "title" .Title "image" (partial "helpers/lib/image-handling/find-image-src" (dict "src" .Destination "page" .Page "getRelative" true "ignoreBundleAssets" false)) "page" .Page "noImageWrapper" (not (.Page.Params.imageAddWrapper | default .Page.Site.Params.imageAddWrapper))) -}}
+{{- $image := partial "helpers/internal-return/image-handling/generate-map-from-src.html" (dict "src" .Destination "page" .Page "getRelative" true "ignoreBundleAssets" false) -}}
+{{- $imageText := partial "helpers/internal-return/image-handling/generate-image-text.html" (dict "page" .Page "altRendered" true "alt" .Text "title" .Title) -}}
+{{- partial "helpers/wrapped-image.html" (dict "image" $image "alt" $imageText.alt "title" $imageText.title "caption" $imageText.caption "page" .Page "noImageWrapper" (not (.Page.Params.imageAddWrapper | default .Page.Site.Params.imageAddWrapper))) -}}

@@ -1,4 +1,4 @@
-{{- $images := partial "helpers/lib/metadata/gather-media-images" .Page -}}
+{{- $images := partial "helpers/internal-return/metadata/gather-media-images" .Page -}}
 {{- if reflect.IsMap $images -}}
 <div class="metadata-image-wrapper">
     <img class="metadata-image" src="{{ $images.link }}"{{ with $images.width }} width="{{ . }}"{{ end }}{{ with $images.height }} height="{{ . }}"{{ end }}{{ with $images.alt }} alt="{{ . }}"{{ end }}{{ with $images.title }} title="{{ . }}"{{ end }}>

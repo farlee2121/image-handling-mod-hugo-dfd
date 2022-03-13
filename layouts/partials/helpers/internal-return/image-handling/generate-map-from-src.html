@@ -4,18 +4,20 @@
 {{- $ignoreBundleAssets := .ignoreBundleAssets -}}
 {{- $ignoreSiteAssets := .ignoreSiteAssets -}}
 {{- $ignoreStaticImages := .ignoreStaticImages -}}
-{{- $alt := .alt -}}
-{{- $title := .title -}}
+{{- $inWidth := .width | default "" -}}
+{{- $inHeight := .height | default "" -}}
 {{- $finalSearch := .finalSearch | default true -}}
 {{- $external := false -}}
 {{- $finalDestination := "" -}}
 {{- $path := "" -}}
+{{- $fragment := "" -}}
 {{- $imageResource := $curPage.Scratch.Get "non-existent-scratch" -}}
 {{- with urls.Parse $destination -}}
     {{- if or .Host .Scheme -}}
         {{- $external = true -}}
     {{- end -}}
     {{- $path = .Path -}}
+    {{- $fragment = .Fragment -}}
 {{- else -}}
     {{- errorf printf "Unable to parse image src '%s'" $destination -}}
 {{- end -}}
@@ -31,10 +33,10 @@
     {{- end -}}
     {{- /* Finally (for local images), try the 'static' directory (not a resource so no Hugo Pipes) */ -}}
     {{- if and (not $imageResource) (ne $ignoreStaticImages true) -}}
-        {{- $finalDestination = partial "helpers/lib/image-handling/get-static-image" (dict "destination" $path "getRelative" $getRelative) -}}
+        {{- $finalDestination = partial "helpers/internal-return/image-handling/generate-dest-from-static.html" (dict "destination" $path "getRelative" $getRelative) -}}
     {{- else if $imageResource -}}
         {{- /* For images resources, get the resulting link to the image */ -}}
-        {{- $finalDestination = partial "helpers/lib/image-handling/get-resource-link" (dict "imageResource" $imageResource "getRelative" $getRelative) -}}
+        {{- $finalDestination = partial "helpers/internal-return/image-handling/generate-dest-from-resource.html" (dict "imageResource" $imageResource "getRelative" $getRelative) -}}
     {{- end -}}
     {{- if and (not $finalDestination) (eq $finalSearch true) -}}
         {{- if $curPage.File -}}
@@ -43,21 +45,39 @@
             {{- errorf (printf "Image %s is missing and not external for page %s" $path $curPage.Title) -}}
         {{- end -}}
     {{- end -}}
-{{- else if $external -}}{{- /* Use external URLs verbatim (not as a resource so no Hugo Pipes; we don't use 0.92.x only functionality, yet) */ -}}
+{{- else if $external -}}{{- /* Use external URLs verbatim (not as a resource so no Hugo Pipes; we don't use 0.92.0+ only functionality, yet) */ -}}
     {{- $finalDestination = $destination -}}
 {{- end -}}
 {{- $image := (dict "imageResource" $imageResource "link" $finalDestination "url" $finalDestination) -}}
-{{- with $image.imageResource -}}
-    {{- if partial "helpers/lib/image-handling/is-processable" . -}}
-        {{- $image = $image | merge (dict "width" .Width "height" .Height) -}}
+{{- $width := $inWidth -}}
+{{- $height := $inHeight -}}
+{{- if $fragment -}}
+    {{- $fragScratch := newScratch -}}
+    {{- $frags := split $fragment "&" -}}
+    {{- range $frags -}}
+        {{- $splitFrags := split . "=" -}}
+        {{- if eq (len $splitFrags) 2 -}}
+            {{- $fragScratch.SetInMap "fragMap" (index $splitFrags 0) (index $splitFrags 1) -}}
+        {{- end -}}
+    {{- end -}}
+    {{- with $fragScratch.Get "fragMap" -}}
+        {{- with .width -}}
+            {{- $width = . -}}
+        {{- end -}}
+        {{- with .height -}}
+            {{- $height = . -}}
+        {{- end -}}
     {{- end -}}
 {{- end -}}
-{{- with ($alt | default $curPage.Params.imageFeaturedAlt | default $curPage.Params.imageCoverAlt | default $curPage.Params.imageThumbnailAlt | default $curPage.Params.featuredImageAlt | default $curPage.Params.featuredAlt) -}}
-    {{ $image = $image | merge (dict "alt" .) -}}
+{{- if or (eq $width "") (eq $height "") -}}
+    {{- with $image.imageResource -}}
+        {{- if partial "helpers/internal-return/image-handling/is-processable" . -}}
+            {{- $width = .Width -}}
+            {{- $height = .Height -}}
+        {{- end -}}
+    {{- end -}}
 {{- end -}}
-{{- with ($title | default $curPage.Params.imageFeaturedTitle | default $curPage.Params.imageCoverTitle | default $curPage.Params.imageThumbnailTitle | default $curPage.Params.featuredImageTitle | default $curPage.Params.featuredTitle) -}}
-    {{ $image = $image | merge (dict "title" .) -}}
-{{- end -}}
+{{- $image = $image | merge (dict "width" $width "height" $height) -}}
 {{- if $finalDestination -}}
     {{- $secUrl := $finalDestination | absURL -}}
     {{- with urls.Parse $secUrl -}}
@@ -68,5 +88,13 @@
 {{- end -}}
 {{- if not (or $image.imageResource $image.link) -}}
     {{- $image = $curPage.Scratch.Get "non-existent-scratch" -}}
+{{- else -}}
+    {{- if not (and $image.width $image.height) -}}
+        {{- if $curPage.File -}}
+            {{- warnf (printf "Image '%s' on page '%s' is missing height and/or width" $image.link $curPage.File.Path) -}}
+        {{- else -}}
+            {{- warnf (printf "Image '%s' on page '%s' is missing height and/or width" $image.link $curPage.Title) -}}
+        {{- end -}}
+    {{- end -}}
 {{- end -}}
 {{- return $image -}}

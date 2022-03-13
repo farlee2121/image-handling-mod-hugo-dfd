@@ -1,4 +1,5 @@
 {{- $ctx := . -}}
+{{- $inPage := .page -}}
 {{- $inWidth := .width -}}
 {{- $inHeight := .height -}}
 {{- $inThumbnailWidth := .thumbnailWidth -}}
@@ -6,7 +7,6 @@
 {{- $inAlt := .alt -}}
 {{- $inTitle := .title -}}
 {{- $inImage := .image -}}
-{{- $inPage := .page -}}
 {{- $inCaption := .caption -}}
 {{- $inClass := .class -}}
 {{- $inImageSizes := .imageSizes -}}
@@ -42,28 +42,19 @@
 {{- with $inPage -}}
     {{- if reflect.IsMap $inImage -}}
         {{- if $fullSize -}}
-            {{- $fullImgMap = partial "helpers/lib/image-handling/generate-images" (dict "width" $inWidth "height" $inHeight "image" $inImage "page" . "imageSizes" $inImageSizes "singleSize" $inSingleSize "convertTo" $inConvertTo) -}}
+            {{- $fullImgMap = partial "helpers/internal-return/image-handling/generate-bundle-from-map.html" (dict "width" $inWidth "height" $inHeight "image" $inImage "page" . "imageSizes" $inImageSizes "singleSize" $inSingleSize "convertTo" $inConvertTo) -}}
         {{- else -}}
             {{- $thumbnailWidth = $inThumbnailWidth | default $inWidth | default .Params.imageThumbnailWidth | default .Site.Params.imageThumbnailWidth | default "512" -}}
             {{- $thumbnailHeight = $inThumbnailHeight | default $inHeight | default .Params.imageThumbnailHeight | default .Site.Params.imageThumbnailHeight | default "auto" -}}
         {{- end -}}
 
         {{- if $thumbnails -}}
-            {{- $thumbnailImgMap = partial "helpers/lib/image-handling/generate-images" (dict "width" $thumbnailWidth "height" $thumbnailHeight "image" $inImage "page" . "imageSizes" $thumbnailSizes "singleSize" $inSingleSize "convertTo" $inConvertTo) -}}
+            {{- $thumbnailImgMap = partial "helpers/internal-return/image-handling/generate-bundle-from-map.html" (dict "width" $thumbnailWidth "height" $thumbnailHeight "image" $inImage "page" . "imageSizes" $thumbnailSizes "singleSize" $inSingleSize "convertTo" $inConvertTo) -}}
         {{- end -}}
     {{- else if not (reflect.IsSlice $inImage) -}}
         {{- $fullImgMap = (dict "finalSrc" $inImage "srcSet" (slice)) -}}
     {{- else -}}
         {{- errorf (printf "Multiple images given when only a single image expected on page '%s'" $inPage) -}}
-    {{- end -}}
-
-    {{- $alt := "" -}}
-    {{- if or $inAlt $inCaption }}
-        {{- with $inAlt -}}
-            {{- $alt = . -}}
-        {{- else -}}
-            {{- $alt = $inCaption | .RenderString | plainify -}}
-        {{- end -}}
     {{- end -}}
 
     {{- $class := $inClass -}}
@@ -91,7 +82,7 @@
             {{- end -}}
             {{- $rel := $inRel | default "noopener noreferrer" -}}
             {{- if $linkHref -}}
-                {{- partial "helpers/link-open" (dict "page" . "destination" $linkHref "class" $inLinkClass "close" false "target" $inTarget "rel" $rel "destinationNoFind" true) -}}
+                {{- partial "helpers/link-open.html" (dict "page" . "destination" $linkHref "class" $inLinkClass "close" false "target" $inTarget "rel" $rel "destinationNoFind" true) -}}
             {{- else -}}
               {{- $addLink = false -}}
             {{- end -}}
@@ -104,20 +95,20 @@
             <picture{{ with $class }} class="{{ . }}"{{ end }}>
             {{- if and $thumbnails (ne $thumbnailImgMap.finalSrc "") -}}
                 {{- $sourceOptions := (dict "imgMap" $thumbnailImgMap "page" . "useSrcSet" (cond (ge (len $thumbnailImgMap.srcSet) 1) true false) "sizesAttr" $thumbnailSizesAttr "media" $thumbnailMedia) -}}
-                {{- partial "helpers/lib-output/image-handling/source-element" $sourceOptions -}}
+                {{- partial "helpers/internal-output/image-handling/source-element.html" $sourceOptions -}}
             {{- end -}}
             {{- if and $fullSize (ne $fullImgMap.finalSrc "") -}}
                 {{- $sourceOptions := (dict "imgMap" $fullImgMap "page" . "useSrcSet" (cond (ge (len $fullImgMap.srcSet) 1) true false) "sizesAttr" $sizesAttr) -}}
-                {{- partial "helpers/lib-output/image-handling/source-element" $sourceOptions -}}
+                {{- partial "helpers/internal-output/image-handling/source-element.html" $sourceOptions -}}
             {{- end -}}
             {{- $class := "" -}}
         {{- end -}}
         {{- if and $fullSize (ne $fullImgMap.finalSrc "") -}}
-            {{- $imgOptions := (dict "imgMap" $fullImgMap "page" . "alt" $alt "title" $inTitle "loading" $inLoading "useSrcSet" (cond (and (not $usePicture) (ge (len $fullImgMap.srcSet) 1)) true false) "class" $class "sizesAttr" $sizesAttr) -}}
-            {{- partial "helpers/lib-output/image-handling/img-element" $imgOptions -}}
+            {{- $imgOptions := (dict "imgMap" $fullImgMap "page" . "alt" $inAlt "title" $inTitle "loading" $inLoading "useSrcSet" (cond (and (not $usePicture) (ge (len $fullImgMap.srcSet) 1)) true false) "class" $class "sizesAttr" $sizesAttr) -}}
+            {{- partial "helpers/internal-output/image-handling/img-element.html" $imgOptions -}}
         {{- else -}}
-            {{- $imgOptions := (dict "imgMap" $thumbnailImgMap "page" . "alt" $alt "title" $inTitle "loading" $inLoading "useSrcSet" (cond (and (not $usePicture) (ge (len $thumbnailImgMap.srcSet) 1)) true false) "class" $class "sizesAttr" $thumbnailSizesAttr) -}}
-            {{- partial "helpers/lib-output/image-handling/img-element" $imgOptions -}}
+            {{- $imgOptions := (dict "imgMap" $thumbnailImgMap "page" . "alt" $inAlt "title" $inTitle "loading" $inLoading "useSrcSet" (cond (and (not $usePicture) (ge (len $thumbnailImgMap.srcSet) 1)) true false) "class" $class "sizesAttr" $thumbnailSizesAttr) -}}
+            {{- partial "helpers/internal-output/image-handling/img-element.html" $imgOptions -}}
         {{- end -}}
         {{- if $usePicture -}}
             </picture>

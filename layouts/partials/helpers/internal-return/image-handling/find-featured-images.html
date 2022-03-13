@@ -7,7 +7,7 @@
 {{- /* Try page-level images first */ -}}
 {{- $featuredParam := $curPage.Params.imageFeatured | default $curPage.Params.imageCover | default $curPage.Params.imageThumbnail | default $curPage.Params.featured_image -}}
 {{- if $featuredParam -}}
-    {{- $foundImages = partial "helpers/lib/image-handling/find-image-maps" (dict "page" $curPage "images" $featuredParam "ignoreBundleAssets" false "ignoreSiteAssets" false "ignoreStaticImages" true "getRelative" $relativeUrl "finalSearch" false) -}}
+    {{- $foundImages = partial "helpers/internal-return/image-handling/find-image-maps" (dict "page" $curPage "images" $featuredParam "ignoreBundleAssets" false "ignoreSiteAssets" false "ignoreStaticImages" true "getRelative" $relativeUrl "finalSearch" false) -}}
 {{- end -}}
 {{- $imageResources := $curPage.Resources.ByType "image" -}}
 {{ if and (not $foundImages) $imageResources -}}
@@ -17,17 +17,17 @@
     {{- $foundImagesByName = $imageResources.Match "{*cover*,*thumbnail*}" -}}
 {{- end -}}
 {{ if and (not $foundImages) (not $foundImagesByName) $featuredParam -}}
-    {{- $foundImages = partial "helpers/lib/image-handling/find-image-maps" (dict "page" $curPage "images" $featuredParam "ignoreBundleAssets" true "ignoreSiteAssets" true "ignoreStaticImages" false "getRelative" $relativeUrl "finalSearch" true) -}}
+    {{- $foundImages = partial "helpers/internal-return/image-handling/generate-maps-from-src.html" (dict "page" $curPage "images" $featuredParam "ignoreBundleAssets" true "ignoreSiteAssets" true "ignoreStaticImages" false "getRelative" $relativeUrl "finalSearch" true) -}}
 {{- end -}}
 {{- with $foundImagesByName -}}
     {{- if reflect.IsSlice . -}}
         {{- $featuredImages = (slice) -}}
         {{- range . -}}
-            {{ $image := partial "helpers/lib/image-handling/generate-featured-map" (dict "page" $curPage "imageResource" . "getRelative" $relativeUrl) -}}
+            {{ $image := partial "helpers/internal-return/image-handling/generate-map-from-featured-resource.html" (dict "page" $curPage "imageResource" . "getRelative" $relativeUrl) -}}
             {{- $featuredImages = $featuredImages | append $image -}}
         {{- end -}}
     {{- else -}}
-        {{ $image := partial "helpers/lib/image-handling/generate-featured-map" (dict "page" $curPage "imageResource" . "getRelative" $relativeUrl) -}}
+        {{ $image := partial "helpers/internal-return/image-handling/generate-map-from-featured-resource.html" (dict "page" $curPage "imageResource" . "getRelative" $relativeUrl) -}}
         {{- $featuredImages = $image -}}
     {{- end -}}
 {{- else -}}

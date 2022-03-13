@@ -1,0 +1,46 @@
+{{- $ctx := . -}}
+{{- $inPage := .page -}}
+{{- $inAlt := .alt -}}
+{{- $inAltRendered := .altRendered -}}
+{{- $inCaption := .caption -}}
+{{- $inCaptionRendered := .captionRendered -}}
+{{- $inTitle := .title -}}
+{{- $alt := "" -}}
+{{- $caption := "" -}}
+{{- $renderedCaption := "" -}}
+{{- with $inPage -}}
+    {{- $altRendered := false -}}
+    {{- $captionRendered := false -}}
+    {{- if or $inAlt $inCaption }}
+        {{- with $inAlt -}}
+            {{- $alt = . -}}
+            {{- $altRendered = eq $inAltRendered true }}
+        {{- else -}}
+            {{- if not (eq $inCaptionRendered true) -}}
+                {{- $alt = $inCaption | .RenderString | plainify -}}
+                {{- $altRendered = true -}}
+            {{- else -}}
+                {{- $alt = $inCaption | plainify -}}
+                {{- $captionRendered = true -}}
+                {{- $altRendered = true -}}
+            {{- end -}}
+        {{- end -}}
+    {{- end -}}
+
+    {{- $caption = $inCaption -}}
+    {{- $captionRendered = eq $inCaptionRendered true -}}
+
+    {{- $altAsCaption := .Params.imageAltAsCaption | default .Site.Params.imageAltAsCaption -}}
+    {{- if and $altAsCaption (not $caption) -}}
+        {{- $caption = $inAlt -}}
+        {{- $captionRendered = $altRendered -}}
+    {{- end -}}
+
+    {{- if $captionRendered -}}
+        {{- $renderedCaption = $caption -}}
+    {{- else -}}
+        {{- $renderedCaption = ($caption | $inPage.RenderString (dict "display" "block")) -}}
+    {{- end -}}
+{{- end -}}
+{{- return (dict "caption" $renderedCaption "alt" $alt "title" $inTitle) -}}
+{{- /* Remove trailing newlines */ -}}
